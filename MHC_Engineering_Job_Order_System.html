@@ -1975,7 +1975,7 @@ footer {
               <label style="display:inline-flex; align-items:center; gap:5px; font-size:12px; cursor:pointer;"><input type="checkbox" id="mChemLeader"> LEADER 3%</label>
               <label style="display:inline-flex; align-items:center; gap:5px; font-size:12px; cursor:pointer;"><input type="checkbox" id="mChemTechno"> TECHNO DET 1% - 3%</label>
               <label style="display:inline-flex; align-items:center; gap:5px; font-size:12px; cursor:pointer;"><input type="checkbox" id="mChemAllFresh"> ALL FRESH 200 ppm</label>
-              <label style="display:inline-flex; align-items:center; gap:5px; font-size:12px; cursor:pointer;"><input type="checkbox" id="mChemSodiumHypo"> SODIUM HYPOCHLORITE 200ppm</label>
+              <label style="display:inline-flex; align-items:center; gap:5px; font-size:12px; cursor:pointer;"><input type="checkbox" id="mChemSodium"> SODIUM HYPOCHLORITE 200ppm</label>
             </div>
 
             <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #475569;">Specific Equipment / Parts Cleaned and Sanitized:</label>
@@ -3555,19 +3555,23 @@ function render() {
 
 // Update Modal Handlers
 window.editJob = id => {
-  const j = jobs.find(x => x.id === id);
-  if (!j) return;
-  $('editId').value = id;
-  $('modalJobNo').innerHTML = `<strong>${esc(j.jobNo)}</strong> • Department: <b>${esc(j.department)}</b> • Requested by: <b>${esc(j.requester)}</b>`;
-  $('modalDateRequested').textContent = j.requestedAt || '--';
-  $('modalDateAccepted').value = j.receivedAt || '';
-  $('receivedBy').value = j.receivedBy || '';
-  $('receivingComment').value = j.receivingComment || '';
-  $('priority').value = matchPriorityValue(j.priority);
-  $('status').value = j.status || 'Pending';
-  $('actionTaken').value = j.actionTaken || '';
-  $('materialsUsed').value = j.materialsUsed || '';
-  $('remarks').value = j.remarks || '';
+  const j = jobs.find(x => x && (String(x.id) === String(id) || String(x.jobNo) === String(id) || x.id == id));
+  if (!j) {
+    console.warn('[MHC] editJob: Job not found for id:', id);
+    toast('Hindi mahanap ang Job Order record.');
+    return;
+  }
+  $('editId').value = j.id || id;
+  if ($('modalJobNo')) $('modalJobNo').innerHTML = `<strong>${esc(j.jobNo)}</strong> • Department: <b>${esc(j.department)}</b> • Requested by: <b>${esc(j.requester)}</b>`;
+  if ($('modalDateRequested')) $('modalDateRequested').textContent = j.requestedAt || '--';
+  if ($('modalDateAccepted')) $('modalDateAccepted').value = j.receivedAt || '';
+  if ($('receivedBy')) $('receivedBy').value = j.receivedBy || '';
+  if ($('receivingComment')) $('receivingComment').value = j.receivingComment || '';
+  if ($('priority')) $('priority').value = matchPriorityValue(j.priority);
+  if ($('status')) $('status').value = j.status || 'Pending';
+  if ($('actionTaken')) $('actionTaken').value = j.actionTaken || '';
+  if ($('materialsUsed')) $('materialsUsed').value = j.materialsUsed || '';
+  if ($('remarks')) $('remarks').value = j.remarks || '';
 
   if ($('modalCausesBox') && $('modalCausesText')) {
     if (j.problemCauses) {
@@ -3579,61 +3583,66 @@ window.editJob = id => {
   }
 
   // Populate Repair Activity fields in modal
-  let rep = {};
-  if (j.repairActivity) {
-    if (typeof j.repairActivity === 'object') {
-      rep = j.repairActivity;
-    } else if (typeof j.repairActivity === 'string') {
-      try { rep = JSON.parse(j.repairActivity); } catch(e) { rep = {}; }
+  try {
+    let rep = {};
+    if (j.repairActivity) {
+      if (typeof j.repairActivity === 'object') {
+        rep = j.repairActivity;
+      } else if (typeof j.repairActivity === 'string') {
+        try { rep = JSON.parse(j.repairActivity); } catch(e) { rep = {}; }
+      }
     }
+
+    if ($('mPpeBonet')) {
+      $('mPpeBonet').checked = !!rep.ppeBonet;
+      if ($('mPpeBoots')) $('mPpeBoots').checked = !!rep.ppeBoots;
+      if ($('mPpeMask')) $('mPpeMask').checked = !!rep.ppeMask;
+      if ($('mPpeApron')) $('mPpeApron').checked = !!rep.ppeApron;
+      if ($('mPpeGown')) $('mPpeGown').checked = !!rep.ppeGown;
+      if ($('mPpeGloves')) $('mPpeGloves').checked = !!rep.ppeGloves;
+      if (rep.handwashing === 'N/A') {
+        const r = document.querySelector('input[name="mHandwashing"][value="N/A"]');
+        if (r) r.checked = true;
+      } else {
+        const r = document.querySelector('input[name="mHandwashing"][value="Yes"]');
+        if (r) r.checked = true;
+      }
+
+      if ($('mRepairStatus')) $('mRepairStatus').value = rep.repairStatus || (j.status === 'Done' ? 'Done' : 'Pending');
+      if ($('mRepairDateCompleted')) $('mRepairDateCompleted').value = rep.dateCompleted || '';
+      if ($('mReworkDetails')) $('mReworkDetails').value = rep.reworkDetails || '';
+      if ($('mFollowUpDate')) $('mFollowUpDate').value = rep.followUpDate || '';
+      if ($('mFollowUpStatus')) $('mFollowUpStatus').value = rep.followUpStatus || '';
+
+      if (rep.cleanedSanitized === 'No') {
+        const r = document.querySelector('input[name="mCleanedSanitized"][value="No"]');
+        if (r) r.checked = true;
+      } else {
+        const r = document.querySelector('input[name="mCleanedSanitized"][value="Yes"]');
+        if (r) r.checked = true;
+      }
+
+      if ($('mChemLeader')) $('mChemLeader').checked = !!rep.chemLeader;
+      if ($('mChemTechno')) $('mChemTechno').checked = !!rep.chemTechno;
+      if ($('mChemAllFresh')) $('mChemAllFresh').checked = !!rep.chemAllFresh;
+      const chemSod = $('mChemSodium') || $('mChemSodiumHypo');
+      if (chemSod) chemSod.checked = !!rep.chemSodium;
+      if ($('mSanitizedParts')) $('mSanitizedParts').value = rep.sanitizedParts || '';
+
+      if ($('mCrewPerformed')) $('mCrewPerformed').value = rep.crewPerformed || j.receivedBy || '';
+      if ($('mLeaderVerified')) $('mLeaderVerified').value = rep.leaderVerified || '';
+      if ($('mDeptAccepted')) $('mDeptAccepted').value = rep.deptAccepted || j.requester || '';
+    }
+  } catch (err) {
+    console.warn('[MHC] Error populating repair activity in modal:', err);
   }
 
-  if ($('mPpeBonet')) {
-    $('mPpeBonet').checked = !!rep.ppeBonet;
-    $('mPpeBoots').checked = !!rep.ppeBoots;
-    $('mPpeMask').checked = !!rep.ppeMask;
-    $('mPpeApron').checked = !!rep.ppeApron;
-    $('mPpeGown').checked = !!rep.ppeGown;
-    $('mPpeGloves').checked = !!rep.ppeGloves;
-    if (rep.handwashing === 'N/A') {
-      const r = document.querySelector('input[name="mHandwashing"][value="N/A"]');
-      if (r) r.checked = true;
-    } else {
-      const r = document.querySelector('input[name="mHandwashing"][value="Yes"]');
-      if (r) r.checked = true;
-    }
-
-    $('mRepairStatus').value = rep.repairStatus || (j.status === 'Done' ? 'Done' : 'Pending');
-    $('mRepairDateCompleted').value = rep.dateCompleted || '';
-    $('mReworkDetails').value = rep.reworkDetails || '';
-    $('mFollowUpDate').value = rep.followUpDate || '';
-    $('mFollowUpStatus').value = rep.followUpStatus || '';
-
-    if (rep.cleanedSanitized === 'No') {
-      const r = document.querySelector('input[name="mCleanedSanitized"][value="No"]');
-      if (r) r.checked = true;
-    } else {
-      const r = document.querySelector('input[name="mCleanedSanitized"][value="Yes"]');
-      if (r) r.checked = true;
-    }
-
-    $('mChemLeader').checked = !!rep.chemLeader;
-    $('mChemTechno').checked = !!rep.chemTechno;
-    $('mChemAllFresh').checked = !!rep.chemAllFresh;
-    $('mChemSodium').checked = !!rep.chemSodium;
-    $('mSanitizedParts').value = rep.sanitizedParts || '';
-
-    $('mCrewPerformed').value = rep.crewPerformed || j.receivedBy || '';
-    $('mLeaderVerified').value = rep.leaderVerified || '';
-    $('mDeptAccepted').value = rep.deptAccepted || j.requester || '';
-  }
-
-  $('jobModal').classList.add('show');
+  if ($('jobModal')) $('jobModal').classList.add('show');
 };
 
 // Permanent Audit Trail Delete (Soft Delete)
 window.deleteJob = async id => {
-  const j = jobs.find(x => x.id === id);
+  const j = jobs.find(x => x && (String(x.id) === String(id) || String(x.jobNo) === String(id) || x.id == id));
   if (!j) return;
 
   const staffName = prompt(
@@ -3666,7 +3675,7 @@ window.deleteJob = async id => {
 };
 
 window.restoreJob = async id => {
-  const j = jobs.find(x => x.id === id);
+  const j = jobs.find(x => x && (String(x.id) === String(id) || String(x.jobNo) === String(id) || x.id == id));
   if (!j) return;
   if (confirm(`Gusto mo bang ibalik sa Active / Pending ang Job Order na ${j.jobNo}?`)) {
     j.status = 'Pending';
@@ -3691,7 +3700,8 @@ $('jobModal').addEventListener('click', e => { if (e.target === $('jobModal')) c
 
 $('updateForm').addEventListener('submit', async e => {
   e.preventDefault();
-  const j = jobs.find(x => x.id === $('editId').value);
+  const editVal = $('editId').value;
+  const j = jobs.find(x => x && (String(x.id) === String(editVal) || String(x.jobNo) === String(editVal) || x.id == editVal));
   if (!j) return;
 
   const receiver = $('receivedBy').value.trim();
@@ -3726,27 +3736,27 @@ $('updateForm').addEventListener('submit', async e => {
   // Save repair activity details
   if ($('mRepairStatus')) {
     j.repairActivity = {
-      ppeBonet: $('mPpeBonet').checked,
-      ppeBoots: $('mPpeBoots').checked,
-      ppeMask: $('mPpeMask').checked,
-      ppeApron: $('mPpeApron').checked,
-      ppeGown: $('mPpeGown').checked,
-      ppeGloves: $('mPpeGloves').checked,
+      ppeBonet: $('mPpeBonet') ? $('mPpeBonet').checked : false,
+      ppeBoots: $('mPpeBoots') ? $('mPpeBoots').checked : false,
+      ppeMask: $('mPpeMask') ? $('mPpeMask').checked : false,
+      ppeApron: $('mPpeApron') ? $('mPpeApron').checked : false,
+      ppeGown: $('mPpeGown') ? $('mPpeGown').checked : false,
+      ppeGloves: $('mPpeGloves') ? $('mPpeGloves').checked : false,
       handwashing: document.querySelector('input[name="mHandwashing"]:checked')?.value || 'Yes',
-      repairStatus: $('mRepairStatus').value,
-      dateCompleted: $('mRepairDateCompleted').value,
-      reworkDetails: $('mReworkDetails').value.trim(),
-      followUpDate: $('mFollowUpDate').value,
-      followUpStatus: $('mFollowUpStatus').value,
+      repairStatus: $('mRepairStatus') ? $('mRepairStatus').value : '',
+      dateCompleted: $('mRepairDateCompleted') ? $('mRepairDateCompleted').value : '',
+      reworkDetails: $('mReworkDetails') ? $('mReworkDetails').value.trim() : '',
+      followUpDate: $('mFollowUpDate') ? $('mFollowUpDate').value : '',
+      followUpStatus: $('mFollowUpStatus') ? $('mFollowUpStatus').value : '',
       cleanedSanitized: document.querySelector('input[name="mCleanedSanitized"]:checked')?.value || 'Yes',
-      chemLeader: $('mChemLeader').checked,
-      chemTechno: $('mChemTechno').checked,
-      chemAllFresh: $('mChemAllFresh').checked,
-      chemSodium: $('mChemSodium').checked,
-      sanitizedParts: $('mSanitizedParts').value.trim(),
-      crewPerformed: $('mCrewPerformed').value.trim(),
-      leaderVerified: $('mLeaderVerified').value.trim(),
-      deptAccepted: $('mDeptAccepted').value.trim()
+      chemLeader: $('mChemLeader') ? $('mChemLeader').checked : false,
+      chemTechno: $('mChemTechno') ? $('mChemTechno').checked : false,
+      chemAllFresh: $('mChemAllFresh') ? $('mChemAllFresh').checked : false,
+      chemSodium: ($('mChemSodium') || $('mChemSodiumHypo')) ? ($('mChemSodium') || $('mChemSodiumHypo')).checked : false,
+      sanitizedParts: $('mSanitizedParts') ? $('mSanitizedParts').value.trim() : '',
+      crewPerformed: $('mCrewPerformed') ? $('mCrewPerformed').value.trim() : '',
+      leaderVerified: $('mLeaderVerified') ? $('mLeaderVerified').value.trim() : '',
+      deptAccepted: $('mDeptAccepted') ? $('mDeptAccepted').value.trim() : ''
     };
   }
 
@@ -3761,7 +3771,7 @@ $('updateForm').addEventListener('submit', async e => {
 
 // Official Job Order Slip (MHC-ENG-JO-01) Modal & PDF Export
 window.openSlipModal = id => {
-  const j = jobs.find(x => x.id === id);
+  const j = jobs.find(x => x && (String(x.id) === String(id) || String(x.jobNo) === String(id) || x.id == id));
   if (!j) return;
   currentSlipJob = j;
 
